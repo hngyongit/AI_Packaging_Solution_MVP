@@ -9,6 +9,8 @@ venv/
 .env
 backend/.env
 frontend/.env
+# But keep .env.example files (templates without secrets)
+!.env.example
 
 # ── Node ─────────────────────────────────────────
 node_modules/
