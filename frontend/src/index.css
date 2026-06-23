@@ -46,3 +46,37 @@
     --tw-prose-code: #0f172a;
     --tw-prose-pre-bg: #f1f5f9;
 }
+
+/* Progress bar animation */
+@keyframes progressPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.animate-progress-pulse {
+    animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+/* Image fade in */
+@keyframes imageFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-image-fade-in {
+    animation: imageFadeIn 0.5s ease-out forwards;
+}

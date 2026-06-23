@@ -98,6 +98,7 @@ async def chat(payload: MessageCreate):
 
     bot_content = agent_result["content"]
     tool_calls = agent_result.get("tool_calls", [])
+    mockup_task_id = agent_result.get("mockup_task_id") or None
 
     # Save assistant message
     bot_msg = {
@@ -105,7 +106,18 @@ async def chat(payload: MessageCreate):
         "role": "assistant",
         "content": bot_content,
         "timestamp": datetime.now(timezone.utc),
+        "mockup_task_id": mockup_task_id,
+        "image_url": None,
     }
+
+    # If there's a mockup being generated, append a metadata block
+    # so the frontend knows to show a progress bar.
+    if mockup_task_id:
+        # Append mockup metadata to the bot message content
+        bot_msg["content"] = bot_content + (
+            f"\n\n<!--MOCKUP task_id={mockup_task_id} -->"
+        )
+
     bot_result = messages_collection.insert_one(bot_msg)
     bot_msg["id"] = str(bot_result.inserted_id)
 
@@ -120,4 +132,5 @@ async def chat(payload: MessageCreate):
         "bot_message": MessageResponse(**bot_msg).model_dump(),
         "conversation_id": conversation_id,
         "tool_calls": tool_calls,
+        "mockup_task_id": mockup_task_id,
     }

@@ -1,3 +1,4 @@
+import json
 from typing import Any
 from tools.base import BaseTool
 
@@ -20,5 +21,5 @@ def tool_descriptions() -> str:
     lines: list[str] = []
     for tool in list_tools():
         lines.append(f"  - {tool.name}: {tool.description}")
-        lines.append(f"    Parameters: {tool.parameters}")
+        lines.append(f"    Parameters: {json.dumps(tool.parameters, indent=4)}")
     return "\n".join(lines)

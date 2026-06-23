@@ -5,6 +5,8 @@ import {
     deleteConversation,
     getMessages,
     sendMessage,
+    updateMockupImage,
+    subscribeMockupSSE,
 } from './api.js'
 import ChatMessage from './components/ChatMessage.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -31,20 +33,101 @@ export default function App() {
 
     useEffect(() => { loadConversations() }, [loadConversations])
 
+    // ── Mockup SSE ──────────────────────────────────────────────
+    const sseUnsubscribers = useRef({})
+
+    const startMockupSSE = useCallback((messageId, taskId) => {
+        // Avoid duplicate subscriptions
+        if (sseUnsubscribers.current[taskId]) return
+
+        // Show progress immediately
+        setMessages(prev => prev.map(m =>
+            m.id === messageId
+                ? { ...m, _progress: 5, _progressText: 'Starting image generation...' }
+                : m
+        ))
+
+        const unsubscribe = subscribeMockupSSE(taskId, {
+            onStatus(data) {
+                // status event with progress
+                const progress = data.progress ?? 0
+                const status = data.status ?? 'PROCESSING'
+                setMessages(prev => prev.map(m =>
+                    m.id === messageId
+                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Generating your packaging mockup...' }
+                        : m
+                ))
+            },
+            onProgress(progress) {
+                setMessages(prev => prev.map(m =>
+                    m.id === messageId
+                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Generating your packaging mockup...' }
+                        : m
+                ))
+            },
+            onComplete(data) {
+                if (data.status === 'COMPLETED' && data.result_url) {
+                    // Persist to backend and update message
+                    updateMockupImage(messageId, data.result_url).catch(() => { })
+                    setMessages(prev => prev.map(m =>
+                        m.id === messageId
+                            ? { ...m, image_url: data.result_url, _progress: undefined, _progressText: undefined }
+                            : m
+                    ))
+                } else {
+                    setMessages(prev => prev.map(m =>
+                        m.id === messageId
+                            ? { ...m, _mockupError: true, content: m.content + '\n\n⚠️ Mockup generation failed.' }
+                            : m
+                    ))
+                }
+                delete sseUnsubscribers.current[taskId]
+            },
+            onError(error) {
+                console.warn('Mockup SSE error:', error)
+                delete sseUnsubscribers.current[taskId]
+            },
+        })
+
+        sseUnsubscribers.current[taskId] = unsubscribe
+    }, [])
+
+    // Cleanup SSE on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(sseUnsubscribers.current).forEach(fn => fn())
+            sseUnsubscribers.current = {}
+        }
+    }, [])
+
     // ── Load messages when conversation changes ─────────────────
     useEffect(() => {
         if (!activeId) { setMessages([]); return }
         setLoadingMsgs(true)
         getMessages(activeId)
-            .then(setMessages)
+            .then(msgs => {
+                // Check for bot messages that have a mockup_task_id but no image_url yet
+                const msgsWithProgress = msgs.map(m => {
+                    if (m.role === 'assistant' && m.mockup_task_id && !m.image_url) {
+                        return {
+                            ...m,
+                            _progress: 10,
+                            _progressText: 'Resuming image generation...',
+                        }
+                    }
+                    return m
+                })
+                setMessages(msgsWithProgress)
+                // Auto-start SSE for any pending mockups
+                for (const m of msgs) {
+                    if (m.role === 'assistant' && m.mockup_task_id && !m.image_url) {
+                        startMockupSSE(m.id, m.mockup_task_id)
+                    }
+                }
+            })
             .catch(() => setMessages([]))
             .finally(() => setLoadingMsgs(false))
-    }, [activeId])
-
-    // ── Auto-scroll ─────────────────────────────────────────────
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    }, [activeId, startMockupSSE])
 
     // ── New conversation ────────────────────────────────────────
     const handleNewChat = async () => {
@@ -88,6 +171,11 @@ export default function App() {
 
         try {
             const result = await sendMessage(convId, text)
+
+            // Must read bot_message.id before setMessages to avoid stale ref
+            const botMsgId = result.bot_message?.id
+            const mockupTaskId = result.mockup_task_id
+
             setMessages(prev => {
                 const updated = [
                     ...prev.filter(m => m.id !== optimisticUser.id),
@@ -105,6 +193,11 @@ export default function App() {
                 updated.push(result.bot_message)
                 return updated
             })
+
+            // Start SSE for mockup (outside updater to avoid nested state calls)
+            if (mockupTaskId && botMsgId) {
+                startMockupSSE(botMsgId, mockupTaskId)
+            }
             // Update active ID if this was a new conversation
             if (!activeId) setActiveId(result.conversation_id)
             loadConversations()

@@ -14,6 +14,8 @@ class MessageResponse(BaseModel):
     role: str  # "user" or "assistant"
     content: str
     timestamp: datetime
+    mockup_task_id: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class ConversationResponse(BaseModel):

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import chat
+from app.routes import chat, mockup
 from app.config import settings
 
 app = FastAPI(title="AI Chat Bot API", version="1.0.0")
@@ -14,6 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(chat.router, prefix="/api")
+app.include_router(mockup.router, prefix="/api")
 
 
 @app.get("/api/health")

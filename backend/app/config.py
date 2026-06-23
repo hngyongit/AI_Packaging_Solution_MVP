@@ -9,6 +9,9 @@ class Settings:
     LLM_API_URL: str = os.getenv("LLM_API_URL", "http://localhost:11434/api/generate")
     LLM_MODEL: str = os.getenv("LLM_MODEL", "llama3")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "default-secret")
+    LUMICRAFT_API_KEY: str = os.getenv("LUMICRAFT_API_KEY", "")
+    MOCKUP_POLL_INTERVAL: int = int(os.getenv("MOCKUP_POLL_INTERVAL", "3"))
+    MOCKUP_MAX_POLL_TIME: int = int(os.getenv("MOCKUP_MAX_POLL_TIME", "120"))
 
 
 settings = Settings()
