@@ -2,7 +2,7 @@
 
 An **AI packaging consultant chatbot** built with **Python (FastAPI) + MongoDB** on the backend and **Vite + React + Tailwind CSS** on the frontend. The agent uses an LLM to **think → call tools → observe results → respond**, making it capable of retrieving real-time data (contracts, inventory, etc.) instead of just generating text.
 
-The frontend features a **light mode, space-sharp design** with an emerald-green packaging theme and playful cartoon-inspired touches.
+The frontend features a **professional industrial design** with a brand-green packaging theme, optimized for B2B carton sales with clean layouts and trust-focused messaging.
 
 ---
 

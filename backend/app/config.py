@@ -12,6 +12,7 @@ class Settings:
     LUMICRAFT_API_KEY: str = os.getenv("LUMICRAFT_API_KEY", "")
     MOCKUP_POLL_INTERVAL: int = int(os.getenv("MOCKUP_POLL_INTERVAL", "3"))
     MOCKUP_MAX_POLL_TIME: int = int(os.getenv("MOCKUP_MAX_POLL_TIME", "120"))
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
 settings = Settings()
