@@ -88,8 +88,12 @@ async def _llm_call(messages: list[dict]) -> str:
         "messages": messages,
         "stream": False,
     }
+    headers = {"Content-Type": "application/json"}
+    if settings.SECRET_KEY and settings.SECRET_KEY != "default-secret":
+        headers["Authorization"] = f"Bearer {settings.SECRET_KEY}"
+
     async with httpx.AsyncClient(timeout=120.0) as client:
-        resp = await client.post(settings.LLM_API_URL, json=payload)
+        resp = await client.post(settings.LLM_API_URL, json=payload, headers=headers)
         try:
             resp.raise_for_status()
         except httpx.HTTPStatusError:
