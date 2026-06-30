@@ -27,7 +27,7 @@ export default function ChatMessage({ message }) {
                 </div>
             ) : isTool ? (
                 <div className="w-9 h-9 bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0">
-                    <span className="text-base">Wrench</span>
+                    <span className="text-base">🔧</span>
                 </div>
             ) : (
                 <div className="w-9 h-9 bg-carton-500 flex items-center justify-center text-xs font-bold text-white shrink-0">
@@ -49,7 +49,7 @@ export default function ChatMessage({ message }) {
                     <div className="mb-3">
                         <div className="flex items-center gap-2 mb-2">
                             <ImageIcon className="w-4 h-4 text-carton-500" />
-                            <span className="font-semibold text-carton-800 text-sm">Generating Mockup</span>
+                            <span className="font-semibold text-carton-800 text-sm">Đang tạo Mẫu</span>
                         </div>
                         <div className="w-full bg-carton-200 h-2 overflow-hidden">
                             <div
@@ -57,7 +57,7 @@ export default function ChatMessage({ message }) {
                                 style={{ width: message._progress + '%', transition: 'width 0.3s ease-in-out' }}
                             />
                         </div>
-                        <p className="text-xs text-carton-600 mt-1.5">{message._progressText || 'Creating your packaging mockup...'}</p>
+                        <p className="text-xs text-carton-600 mt-1.5">{message._progressText || 'Đang tạo mẫu bao bì của bạn...'}</p>
                     </div>
                 )}
 
@@ -66,7 +66,7 @@ export default function ChatMessage({ message }) {
                         <div className="overflow-hidden border border-carton-200 bg-pearl-50">
                             <img
                                 src={message.image_url}
-                                alt="Packaging Mockup"
+                                alt="Mẫu Bao bì"
                                 className="w-full h-auto object-contain max-h-80"
                                 loading="lazy"
                                 onError={(e) => {
@@ -75,7 +75,7 @@ export default function ChatMessage({ message }) {
                                 }}
                             />
                             <div className="mockup-error hidden items-center justify-center h-40 text-carton-500 text-sm">
-                                <span>Image could not be loaded</span>
+                                <span>Không thể tải ảnh</span>
                             </div>
                         </div>
                         <button
@@ -83,7 +83,7 @@ export default function ChatMessage({ message }) {
                             className="mt-2 text-xs text-carton-600 hover:text-carton-700 flex items-center gap-1"
                         >
                             <Copy className="w-3 h-3" />
-                            Copy image URL
+                            Sao chép URL ảnh
                         </button>
                     </div>
                 )}
@@ -94,7 +94,7 @@ export default function ChatMessage({ message }) {
                             <div className="mb-2 max-w-60 overflow-hidden border border-carton-400/30 bg-pearl-50">
                                 <img
                                     src={message.image_url}
-                                    alt="Attached image"
+                                    alt="Ảnh đính kèm"
                                     className="w-full h-auto object-contain max-h-48"
                                     loading="lazy"
                                 />

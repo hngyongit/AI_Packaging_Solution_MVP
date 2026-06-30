@@ -50,7 +50,7 @@ export default function App() {
         // Show progress immediately
         setMessages(prev => prev.map(m =>
             m.id === messageId
-                ? { ...m, _progress: 5, _progressText: 'Starting image generation...' }
+                ? { ...m, _progress: 5, _progressText: 'Đang bắt đầu tạo ảnh...' }
                 : m
         ))
 
@@ -61,14 +61,14 @@ export default function App() {
                 const status = data.status ?? 'PROCESSING'
                 setMessages(prev => prev.map(m =>
                     m.id === messageId
-                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Generating your packaging mockup...' }
+                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Đang tạo mẫu bao bì của bạn...' }
                         : m
                 ))
             },
             onProgress(progress) {
                 setMessages(prev => prev.map(m =>
                     m.id === messageId
-                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Generating your packaging mockup...' }
+                        ? { ...m, _progress: Math.max(5, progress), _progressText: 'Đang tạo mẫu bao bì của bạn...' }
                         : m
                 ))
             },
@@ -84,7 +84,7 @@ export default function App() {
                 } else {
                     setMessages(prev => prev.map(m =>
                         m.id === messageId
-                            ? { ...m, _mockupError: true, content: m.content + '\n\n⚠️ Mockup generation failed.' }
+                            ? { ...m, _mockupError: true, content: m.content + '\n\n⚠️ Tạo mẫu thất bại.' }
                             : m
                     ))
                 }
@@ -119,7 +119,7 @@ export default function App() {
                         return {
                             ...m,
                             _progress: 10,
-                            _progressText: 'Resuming image generation...',
+                            _progressText: 'Đang tiếp tục tạo ảnh...',
                         }
                     }
                     return m
@@ -217,7 +217,7 @@ export default function App() {
             setMessages(prev => [
                 ...prev.filter(m => m.id !== optimisticUser.id),
                 optimisticUser,
-                { id: `err-${Date.now()}`, role: 'assistant', content: '⚠️ Failed to get response. Is the backend running?', _error: true },
+                { id: `err-${Date.now()}`, role: 'assistant', content: '⚠️ Không thể nhận phản hồi. Máy chủ có đang chạy không?', _error: true },
             ])
         } finally {
             setSending(false)
@@ -242,7 +242,7 @@ export default function App() {
             setShowImageUpload(false)
         } catch (err) {
             console.error('Upload failed:', err)
-            alert('Failed to upload image. Please try again.')
+            alert('Tải ảnh lên thất bại. Vui lòng thử lại.')
         } finally {
             setUploadingImage(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -261,7 +261,7 @@ export default function App() {
             setShowImageUpload(false)
         } catch (err) {
             console.error('Upload via URL failed:', err)
-            alert('Failed to upload image from URL. Please check the link and try again.')
+            alert('Tải ảnh từ URL thất bại. Vui lòng kiểm tra liên kết và thử lại.')
         } finally {
             setUploadingImage(false)
         }
@@ -271,17 +271,17 @@ export default function App() {
         setAttachedImage(null)
     }
 
-    // ── Filter out first message if it matches conversation title ──
-    const filteredMessages = (() => {
-        if (!activeConv || !messages.length) return messages
-        const title = activeConv.title
-        if (!title || title === 'New Chat' || title === 'Untitled') return messages
-        const firstMsg = messages[0]
-        if (firstMsg.role === 'user' && firstMsg.content && firstMsg.content.startsWith(title)) {
-            return messages.slice(1)
+    // ── Auto-select most recent conversation ────────────────────
+    useEffect(() => {
+        if (conversations.length > 0 && !activeId) {
+            setActiveId(conversations[0].id)
         }
-        return messages
-    })()
+    }, [conversations, activeId])
+
+    // ── Auto-scroll to bottom when messages change ─────────────
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
 
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-pearl-50">
@@ -300,16 +300,16 @@ export default function App() {
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-base font-bold text-carton-900 leading-tight truncate">
-                            {activeConv ? activeConv.title : 'AI Packaging Solution'}
+                            {activeConv ? activeConv.title : 'Giải pháp Bao bì AI'}
                         </h1>
                         <p className="text-[11px] font-medium text-carton-600 tracking-wide">
-                            AI Packaging Consultant
+                            Tư vấn Bao bì AI
                         </p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
                         <span className="flex items-center gap-1.5 px-3 py-1 bg-carton-100 text-carton-700 text-xs font-medium">
                             <span className="w-1.5 h-1.5 bg-carton-500 inline-block" />
-                            Online
+                            Trực tuyến
                         </span>
                     </div>
                 </header>
@@ -321,13 +321,13 @@ export default function App() {
                         <div className="flex justify-center py-20">
                             <Loader2 className="w-6 h-6 animate-spin text-carton-400" />
                         </div>
-                    ) : filteredMessages.length === 0 ? (
+                    ) : messages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-carton-400">
                             <MessageCircle className="w-10 h-10 mb-3 text-carton-300" />
-                            <p className="text-sm">Send a message to start chatting</p>
+                            <p className="text-sm">Gửi tin nhắn để bắt đầu trò chuyện</p>
                         </div>
                     ) : (
-                        filteredMessages.map(m => <ChatMessage key={m.id} message={m} />)
+                        messages.map(m => <ChatMessage key={m.id} message={m} />)
                     )}
                     {sending && (
                         <div className="flex items-start gap-3 px-4 py-3.5 animate-fade-in">
@@ -351,7 +351,7 @@ export default function App() {
                             <div className="mb-3 p-3 bg-pearl-50 border border-carton-200 text-sm">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold text-carton-800 text-xs uppercase tracking-wider">
-                                        Attach Image
+                                        Đính kèm Ảnh
                                     </span>
                                     <button
                                         onClick={() => { setShowImageUpload(false); setImageUrlInput('') }}
@@ -376,14 +376,14 @@ export default function App() {
                                         className="flex items-center gap-2 px-3 py-2 bg-carton-100 hover:bg-carton-200 text-carton-700 cursor-pointer transition text-sm"
                                     >
                                         <ImagePlus className="w-4 h-4" />
-                                        {uploadingImage ? 'Uploading...' : 'Choose file from computer'}
+                                        {uploadingImage ? 'Đang tải lên...' : 'Chọn tệp từ máy tính'}
                                     </label>
                                 </div>
 
                                 {/* Divider */}
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="flex-1 border-t border-carton-200" />
-                                    <span className="text-xs text-carton-400">or paste a link</span>
+                                    <span className="text-xs text-carton-400">hoặc dán liên kết</span>
                                     <span className="flex-1 border-t border-carton-200" />
                                 </div>
 
@@ -414,7 +414,7 @@ export default function App() {
                                 <div className="w-8 h-8 overflow-hidden border border-carton-300 bg-pearl-50 shrink-0">
                                     <img
                                         src={attachedImage.url}
-                                        alt="Attached"
+                                        alt="Ảnh đính kèm"
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
@@ -437,7 +437,7 @@ export default function App() {
                                     onClick={() => setShowImageUpload(prev => !prev)}
                                     disabled={sending || uploadingImage}
                                     className="flex items-center justify-center w-10 h-10 bg-pearl-50 border border-carton-300 hover:bg-carton-100 text-carton-500 hover:text-carton-700 disabled:opacity-40 transition shrink-0"
-                                    title={showImageUpload ? 'Close image upload' : 'Attach image'}
+                                    title={showImageUpload ? 'Đóng tải ảnh lên' : 'Đính kèm ảnh'}
                                 >
                                     <ImagePlus className="w-5 h-5" />
                                 </button>
@@ -445,7 +445,7 @@ export default function App() {
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Ask about packaging solutions..."
+                                    placeholder="Hỏi về giải pháp đóng gói..."
                                     rows={1}
                                     className="w-full resize-none bg-pearl-50 border border-carton-300 px-4 py-3 text-sm text-carton-900 placeholder-carton-400 focus:outline-none focus:border-carton-500 transition"
                                     style={{ minHeight: 48, maxHeight: 160 }}

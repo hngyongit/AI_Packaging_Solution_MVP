@@ -3,10 +3,10 @@ import { MessageSquarePlus, Package, TrendingUp, ShieldCheck, Clock } from 'luci
 
 export default function EmptyState({ onNew }) {
     const features = [
-        { icon: Package, title: 'Carton Sizing', desc: 'Get optimal box dimensions for your products' },
-        { icon: TrendingUp, title: 'Cost Optimization', desc: 'Minimize packaging costs with smart recommendations' },
-        { icon: ShieldCheck, title: 'Structural Integrity', desc: 'Ensure your packaging meets safety standards' },
-        { icon: Clock, title: 'Fast Turnaround', desc: 'Get expert advice in seconds' },
+        { icon: Package, title: 'Kích thước Thùng', desc: 'Nhận kích thước thùng tối ưu cho sản phẩm của bạn' },
+        { icon: TrendingUp, title: 'Tối ưu Chi phí', desc: 'Giảm thiểu chi phí đóng gói với đề xuất thông minh' },
+        { icon: ShieldCheck, title: 'An toàn Cấu trúc', desc: 'Đảm bảo bao bì đáp ứng các tiêu chuẩn an toàn' },
+        { icon: Clock, title: 'Xử lý Nhanh', desc: 'Nhận tư vấn chuyên gia trong vài giây' },
     ]
 
     return (
@@ -17,11 +17,11 @@ export default function EmptyState({ onNew }) {
                 </div>
 
                 <h2 className="text-3xl font-bold text-carton-900 mb-3">
-                    AI Packaging Solution
+                    Giải pháp Bao bì AI
                 </h2>
 
                 <p className="text-base text-carton-600 max-w-md mx-auto mb-8">
-                    Your packaging consultant for carton design, pricing, and optimization.
+                    Chuyên gia tư vấn bao bì của bạn về thiết kế, báo giá và tối ưu hóa thùng carton.
                 </p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
@@ -40,11 +40,11 @@ export default function EmptyState({ onNew }) {
                     className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-carton-500 hover:bg-carton-600 text-white font-semibold transition"
                 >
                     <MessageSquarePlus className="w-5 h-5" />
-                    Start New Chat
+                    Bắt đầu trò chuyện mới
                 </button>
 
                 <p className="mt-6 text-xs text-carton-500">
-                    Ask about carton boxes, pricing, printing, or packaging optimization
+                    Hỏi về thùng carton, báo giá, in ấn hoặc tối ưu hóa bao bì
                 </p>
             </div>
         </div>

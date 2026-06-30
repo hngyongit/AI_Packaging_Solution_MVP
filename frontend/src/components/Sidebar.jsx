@@ -10,8 +10,8 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
                         <Package className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-base font-bold text-carton-900 leading-tight">AI Packaging</h2>
-                        <p className="text-[11px] text-carton-600 font-medium tracking-wide">Solution</p>
+                        <h2 className="text-base font-bold text-carton-900 leading-tight">Bao bì AI</h2>
+                        <p className="text-[11px] text-carton-600 font-medium tracking-wide">Giải pháp</p>
                     </div>
                 </div>
                 <button
@@ -19,19 +19,19 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
                     className="w-full flex items-center justify-center gap-2 bg-carton-500 hover:bg-carton-600 text-white py-2.5 text-sm font-semibold transition"
                 >
                     <Plus className="w-4 h-4" />
-                    New Chat
+                    Trò chuyện mới
                 </button>
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="px-5 pt-3 pb-1.5">
-                    <p className="text-[10px] font-semibold text-carton-600 uppercase tracking-wider">Conversations</p>
+                    <p className="text-[10px] font-semibold text-carton-600 uppercase tracking-wider">Cuộc trò chuyện</p>
                 </div>
 
                 <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
                     {conversations.length === 0 && (
                         <p className="text-xs text-carton-500 text-center pt-6 px-3">
-                            No conversations yet. Start a new chat to begin.
+                            Chưa có cuộc trò chuyện nào. Hãy bắt đầu một cuộc trò chuyện mới.
                         </p>
                     )}
                     {conversations.map(conv => (
@@ -44,11 +44,11 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
                                 }`}
                         >
                             <MessageCircle className="w-4 h-4 shrink-0" />
-                            <span className="truncate flex-1">{conv.title || 'Untitled'}</span>
+                            <span className="truncate flex-1">{conv.title || 'Chưa có tiêu đề'}</span>
                             <button
                                 onClick={e => { e.stopPropagation(); onDelete(conv.id) }}
                                 className="opacity-0 group-hover:opacity-100 hover:text-red-600 transition p-0.5"
-                                title="Delete conversation"
+                                title="Xóa cuộc trò chuyện"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -64,10 +64,10 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-medium text-carton-800 truncate">
-                            AI Packaging Solution
+                            Giải pháp Bao bì AI
                         </p>
                         <p className="text-[10px] text-carton-600">
-                            Carton design and optimization
+                            Thiết kế và tối ưu hóa thùng carton
                         </p>
                     </div>
                 </div>
