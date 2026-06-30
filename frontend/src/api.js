@@ -29,8 +29,10 @@ export async function getMessages(conversationId) {
     return data
 }
 
-export async function sendMessage(conversationId, content) {
-    const { data } = await api.post('/api/chat', { conversation_id: conversationId, content })
+export async function sendMessage(conversationId, content, imageUrl = null) {
+    const payload = { conversation_id: conversationId, content }
+    if (imageUrl) payload.image_url = imageUrl
+    const { data } = await api.post('/api/chat', payload)
     return data  // { user_message, bot_message, conversation_id, mockup_task_id, tool_calls }
 }
 
@@ -42,6 +44,36 @@ export async function getMockupStatus(taskId) {
 export async function updateMockupImage(messageId, imageUrl) {
     const { data } = await api.patch(`/api/mockup/message/${messageId}`, { image_url: imageUrl })
     return data  // { ok: true }
+}
+
+/**
+ * Upload an image file to Cloudinary via the backend.
+ *
+ * @param {File} file - The image file to upload.
+ * @returns {Promise<{url: string, public_id: string, format: string, bytes: number}>}
+ */
+export async function uploadImageFile(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const { data } = await api.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+}
+
+/**
+ * Upload an image from a URL to Cloudinary via the backend.
+ *
+ * @param {string} imageUrl - Public URL of the image.
+ * @returns {Promise<{url: string, public_id: string, format: string, bytes: number}>}
+ */
+export async function uploadImageUrl(imageUrl) {
+    const formData = new FormData()
+    formData.append('image_url', imageUrl)
+    const { data } = await api.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
 }
 
 /**

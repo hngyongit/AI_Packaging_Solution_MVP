@@ -9,7 +9,6 @@ import json
 import time
 
 import httpx
-from sseclient import SSEClient
 from app.config import settings
 
 # In-memory cache: task_id -> {status, image_url, message, cached_at}
@@ -17,9 +16,18 @@ _cache: dict[str, dict] = {}
 
 _LUMICRAFT_BASE = "https://api.lumicraft.io/v1"
 
-
 def _extract_image_url(data: dict) -> str | None:
-    """Extract image URL from Lumicraft API response (nested in result.data[0].url)."""
+    """Extract image URL from Lumicraft API polling response.
+
+    The `complete` SSE event and the polling response both place
+    ``result_url`` at the root level.  Fall back to the legacy nested
+    ``result.data[0].url`` path just in case.
+    """
+    # Primary: root-level result_url (matches SSE complete-event shape)
+    url = data.get("result_url")
+    if url:
+        return url
+    # Fallback: nested inside result.data[0].url
     try:
         result_data = data.get("result")
         if result_data and isinstance(result_data, dict):
@@ -32,7 +40,6 @@ def _extract_image_url(data: dict) -> str | None:
     except Exception:
         pass
     return None
-
 
 async def get_or_poll_status(task_id: str) -> dict:
     """Return cached status if fresh, otherwise poll Lumicraft API."""
@@ -79,7 +86,6 @@ async def get_or_poll_status(task_id: str) -> dict:
     except Exception as e:
         return {"status": "ERROR", "image_url": None, "message": str(e)}
 
-
 async def poll_until_complete(task_id: str) -> dict:
     """Poll Lumicraft until the task completes or times out."""
     start = time.time()
@@ -93,7 +99,6 @@ async def poll_until_complete(task_id: str) -> dict:
         await asyncio.sleep(interval)
 
     return {"status": "TIMEOUT", "image_url": None, "message": "Image generation timed out"}
-
 
 # ── Real-time SSE streaming ────────────────────────────────────
 
@@ -157,7 +162,6 @@ async def sse_events(task_id: str):
         yield {"event": "complete", "data": {"status": "ERROR", "result_url": None, "error": "SSE connection timed out"}}
     except Exception as e:
         yield {"event": "complete", "data": {"status": "ERROR", "result_url": None, "error": str(e)}}
-
 
 def _parse_sse(text: str) -> dict | None:
     """Parse a single SSE message text into {event, data}."""

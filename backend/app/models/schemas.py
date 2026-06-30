@@ -6,6 +6,7 @@ from datetime import datetime
 class MessageCreate(BaseModel):
     conversation_id: Optional[str] = None
     content: str
+    image_url: Optional[str] = None
 
 
 class MessageResponse(BaseModel):
@@ -15,7 +16,7 @@ class MessageResponse(BaseModel):
     content: str
     timestamp: datetime
     mockup_task_id: Optional[str] = None
-    image_url: Optional[str] = None
+    image_url: Optional[str] = None  # for user: uploaded image; for assistant: mockup result
 
 
 class ConversationResponse(BaseModel):

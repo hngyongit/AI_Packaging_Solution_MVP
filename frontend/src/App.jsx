@@ -7,11 +7,13 @@ import {
     sendMessage,
     updateMockupImage,
     subscribeMockupSSE,
+    uploadImageFile,
+    uploadImageUrl,
 } from './api.js'
 import ChatMessage from './components/ChatMessage.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import EmptyState from './components/EmptyState.jsx'
-import { Send, Loader2, Package, MessageCircle } from 'lucide-react'
+import { Send, Loader2, Package, MessageCircle, ImagePlus, Link, X } from 'lucide-react'
 
 export default function App() {
     const [conversations, setConversations] = useState([])
@@ -20,6 +22,11 @@ export default function App() {
     const [input, setInput] = useState('')
     const [sending, setSending] = useState(false)
     const [loadingMsgs, setLoadingMsgs] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState(false)
+    const [showImageUpload, setShowImageUpload] = useState(false)
+    const [imageUrlInput, setImageUrlInput] = useState('')
+    const [attachedImage, setAttachedImage] = useState(null) // { url, name } or null
+    const fileInputRef = useRef(null)
     const activeConv = conversations.find(c => c.id === activeId)
     const messagesEndRef = useRef(null)
 
@@ -150,6 +157,8 @@ export default function App() {
         setInput('')
         setSending(true)
 
+        const imageUrl = attachedImage?.url || null
+
         let convId = activeId
         // Auto-create a conversation if none is active
         if (!convId) {
@@ -166,11 +175,14 @@ export default function App() {
             conversation_id: convId,
             role: 'user',
             content: text,
+            image_url: imageUrl,
         }
         setMessages(prev => [...prev, optimisticUser])
+        // Clear attached image immediately
+        setAttachedImage(null)
 
         try {
-            const result = await sendMessage(convId, text)
+            const result = await sendMessage(convId, text, imageUrl)
 
             // Must read bot_message.id before setMessages to avoid stale ref
             const botMsgId = result.bot_message?.id
@@ -217,6 +229,46 @@ export default function App() {
             e.preventDefault()
             handleSend()
         }
+    }
+
+    // ── Image upload (file picker) ──────────────────────────────
+    const handleFileSelect = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setUploadingImage(true)
+        try {
+            const result = await uploadImageFile(file)
+            setAttachedImage({ url: result.url, name: file.name })
+            setShowImageUpload(false)
+        } catch (err) {
+            console.error('Upload failed:', err)
+            alert('Failed to upload image. Please try again.')
+        } finally {
+            setUploadingImage(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
+
+    // ── Image upload (URL) ──────────────────────────────────────
+    const handleImageUrlSubmit = async () => {
+        const url = imageUrlInput.trim()
+        if (!url) return
+        setUploadingImage(true)
+        try {
+            const result = await uploadImageUrl(url)
+            setAttachedImage({ url: result.url, name: url.split('/').pop() || 'image' })
+            setImageUrlInput('')
+            setShowImageUpload(false)
+        } catch (err) {
+            console.error('Upload via URL failed:', err)
+            alert('Failed to upload image from URL. Please check the link and try again.')
+        } finally {
+            setUploadingImage(false)
+        }
+    }
+
+    const handleRemoveAttachedImage = () => {
+        setAttachedImage(null)
     }
 
     // ── Filter out first message if it matches conversation title ──
@@ -293,29 +345,124 @@ export default function App() {
                 </div>
 
                 <div className="bg-pearl-100 border-t border-carton-200 px-4 sm:px-6 lg:px-8 py-4 shrink-0">
-                    <div className="max-w-4xl mx-auto flex gap-3 items-end">
-                        <div className="flex-1 relative">
-                            <textarea
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Ask about packaging solutions..."
-                                rows={1}
-                                className="w-full resize-none bg-pearl-50 border border-carton-300 px-4 py-3 text-sm text-carton-900 placeholder-carton-400 focus:outline-none focus:border-carton-500 transition"
-                                style={{ minHeight: 48, maxHeight: 160 }}
-                                onInput={e => {
-                                    e.target.style.height = 'auto'
-                                    e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
-                                }}
-                            />
+                    <div className="max-w-4xl mx-auto">
+                        {/* ── Image upload panel (toggled) ─────────────────── */}
+                        {showImageUpload && (
+                            <div className="mb-3 p-3 bg-pearl-50 border border-carton-200 text-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-semibold text-carton-800 text-xs uppercase tracking-wider">
+                                        Attach Image
+                                    </span>
+                                    <button
+                                        onClick={() => { setShowImageUpload(false); setImageUrlInput('') }}
+                                        className="text-carton-400 hover:text-carton-600 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Upload from file */}
+                                <div className="mb-2">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                                        onChange={handleFileSelect}
+                                        className="hidden"
+                                        id="image-file-input"
+                                    />
+                                    <label
+                                        htmlFor="image-file-input"
+                                        className="flex items-center gap-2 px-3 py-2 bg-carton-100 hover:bg-carton-200 text-carton-700 cursor-pointer transition text-sm"
+                                    >
+                                        <ImagePlus className="w-4 h-4" />
+                                        {uploadingImage ? 'Uploading...' : 'Choose file from computer'}
+                                    </label>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="flex-1 border-t border-carton-200" />
+                                    <span className="text-xs text-carton-400">or paste a link</span>
+                                    <span className="flex-1 border-t border-carton-200" />
+                                </div>
+
+                                {/* Upload from URL */}
+                                <div className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        value={imageUrlInput}
+                                        onChange={e => setImageUrlInput(e.target.value)}
+                                        placeholder="https://example.com/logo.png"
+                                        className="flex-1 bg-pearl-50 border border-carton-300 px-3 py-2 text-sm text-carton-900 placeholder-carton-400 focus:outline-none focus:border-carton-500 transition"
+                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleImageUrlSubmit() } }}
+                                    />
+                                    <button
+                                        onClick={handleImageUrlSubmit}
+                                        disabled={!imageUrlInput.trim() || uploadingImage}
+                                        className="flex items-center justify-center px-3 bg-carton-500 hover:bg-carton-600 disabled:bg-carton-200 disabled:text-pearl-300 text-white transition shrink-0"
+                                    >
+                                        {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Attached image preview ──────────────────── */}
+                        {attachedImage && (
+                            <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-carton-100 border border-carton-200 text-sm">
+                                <div className="w-8 h-8 overflow-hidden border border-carton-300 bg-pearl-50 shrink-0">
+                                    <img
+                                        src={attachedImage.url}
+                                        alt="Attached"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <span className="text-carton-700 truncate flex-1 text-xs">
+                                    {attachedImage.name}
+                                </span>
+                                <button
+                                    onClick={handleRemoveAttachedImage}
+                                    className="text-carton-400 hover:text-red-500 transition shrink-0"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* ── Input row ──────────────────────────────────── */}
+                        <div className="flex gap-3 items-end">
+                            <div className="flex-1 relative flex items-end gap-2">
+                                <button
+                                    onClick={() => setShowImageUpload(prev => !prev)}
+                                    disabled={sending || uploadingImage}
+                                    className="flex items-center justify-center w-10 h-10 bg-pearl-50 border border-carton-300 hover:bg-carton-100 text-carton-500 hover:text-carton-700 disabled:opacity-40 transition shrink-0"
+                                    title={showImageUpload ? 'Close image upload' : 'Attach image'}
+                                >
+                                    <ImagePlus className="w-5 h-5" />
+                                </button>
+                                <textarea
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Ask about packaging solutions..."
+                                    rows={1}
+                                    className="w-full resize-none bg-pearl-50 border border-carton-300 px-4 py-3 text-sm text-carton-900 placeholder-carton-400 focus:outline-none focus:border-carton-500 transition"
+                                    style={{ minHeight: 48, maxHeight: 160 }}
+                                    onInput={e => {
+                                        e.target.style.height = 'auto'
+                                        e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+                                    }}
+                                />
+                            </div>
+                            <button
+                                onClick={handleSend}
+                                disabled={(!input.trim() && !attachedImage) || sending}
+                                className="flex items-center justify-center w-12 h-12 bg-carton-500 hover:bg-carton-600 disabled:bg-carton-200 disabled:text-pearl-300 text-white transition shrink-0"
+                            >
+                                {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                            </button>
                         </div>
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() || sending}
-                            className="flex items-center justify-center w-12 h-12 bg-carton-500 hover:bg-carton-600 disabled:bg-carton-200 disabled:text-pearl-300 text-white transition shrink-0"
-                        >
-                            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                        </button>
                     </div>
                 </div>
             </main>

@@ -69,11 +69,12 @@ async def chat(payload: MessageCreate):
 
     now = datetime.now(timezone.utc)
 
-    # Save user message
+    # Save user message (with optional image_url)
     user_msg = {
         "conversation_id": conversation_id,
         "role": "user",
         "content": payload.content,
+        "image_url": payload.image_url,
         "timestamp": now,
     }
     msg_result = messages_collection.insert_one(user_msg)
@@ -86,7 +87,13 @@ async def chat(payload: MessageCreate):
         .limit(agent_config.MAX_HISTORY)
     )
     context = [
-        {"role": m["role"], "content": m["content"]}
+        {
+            "role": m["role"],
+            "content": (
+                m["content"]
+                + (f'\n[Attached image: {m["image_url"]}]' if m.get("image_url") else "")
+            ),
+        }
         for m in reversed(recent)
     ]
 

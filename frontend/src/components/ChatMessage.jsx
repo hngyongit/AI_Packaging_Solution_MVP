@@ -7,7 +7,8 @@ export default function ChatMessage({ message }) {
     const isTool = message.role === 'tool'
     const isError = message._error || message._mockupError
     const hasMockupProgress = message._progress !== undefined && message._progress < 100 && !message.image_url
-    const hasMockupImage = message.image_url && message.image_url.length > 0
+    const hasMockupImage = message.role === 'assistant' && message.image_url && message.image_url.length > 0
+    const hasUserImage = isUser && message.image_url && message.image_url.length > 0
 
     const displayContent = message.content
         ?.replace(/<!--MOCKUP_PROGRESS task_id=[^ ]+ -->/g, '')
@@ -15,7 +16,7 @@ export default function ChatMessage({ message }) {
         ?.trim()
 
     const handleCopy = (text) => {
-        navigator.clipboard.writeText(text).then(() => {})
+        navigator.clipboard.writeText(text).then(() => { })
     }
 
     return (
@@ -35,15 +36,14 @@ export default function ChatMessage({ message }) {
             )}
 
             <div
-                className={`max-w-[75%] px-4 py-2.5 text-sm leading-relaxed ${
-                    isUser
+                className={`max-w-[75%] px-4 py-2.5 text-sm leading-relaxed ${isUser
                         ? 'bg-carton-500 text-white'
                         : isTool
                             ? 'bg-amber-50 border border-amber-300 text-amber-800 font-mono text-xs'
                             : isError
                                 ? 'bg-red-50 border border-red-200 text-red-700'
                                 : 'bg-pearl-100 border border-carton-200 text-carton-900'
-                }`}
+                    }`}
             >
                 {hasMockupProgress && (
                     <div className="mb-3">
@@ -89,7 +89,19 @@ export default function ChatMessage({ message }) {
                 )}
 
                 {isUser ? (
-                    <p className="whitespace-pre-wrap">{displayContent}</p>
+                    <>
+                        {hasUserImage && (
+                            <div className="mb-2 max-w-60 overflow-hidden border border-carton-400/30 bg-pearl-50">
+                                <img
+                                    src={message.image_url}
+                                    alt="Attached image"
+                                    className="w-full h-auto object-contain max-h-48"
+                                    loading="lazy"
+                                />
+                            </div>
+                        )}
+                        <p className="whitespace-pre-wrap">{displayContent}</p>
+                    </>
                 ) : (
                     <div className="prose prose-sm max-w-none">
                         <ReactMarkdown>{displayContent || ''}</ReactMarkdown>

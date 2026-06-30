@@ -3,7 +3,9 @@ Tool: generate_mockup
 
 Calls the Lumicraft API to generate a packaging mockup image.
 Accepts either a text prompt or a reference image URL + optional prompt.
-Uses multipart/form-data for Lumicraft (supports image= + image_2= fields).
+Reference images are downloaded and uploaded as the multipart `image` field
+(per the Lumicraft API spec — the API uses file upload, not an `image_url`
+string field).
 Returns a task_id immediately; the backend streams real-time status via SSE
 while the frontend shows a progress bar.
 """
@@ -11,6 +13,19 @@ import json
 import httpx
 from tools.base import BaseTool
 from app.config import settings
+
+
+def _extract_ext(content_type: str) -> str:
+    """Guess a file extension from a content-type header."""
+    if "jpeg" in content_type or "jpg" in content_type:
+        return "jpg"
+    if "png" in content_type:
+        return "png"
+    if "webp" in content_type:
+        return "webp"
+    if "gif" in content_type:
+        return "gif"
+    return "png"
 
 
 class GenerateMockup(BaseTool):
@@ -70,49 +85,50 @@ class GenerateMockup(BaseTool):
                 "message": "Lumicraft API key is not configured. Please set LUMICRAFT_API_KEY in .env",
             })
 
-        # Step 1: Build multipart form data
-        form_data = {
+        # Build multipart form fields for the Lumicraft API.
+        # httpx sends multipart/form-data automatically when `files` is provided.
+        fields: dict[str, str] = {
             "prompt": prompt,
             "model": "C-Image",
-            "quality": "hd",
+            "quality": "sd",
         }
 
-        # If user provided an image URL, download it and attach as file,
-        # and also adjust the prompt to reference the uploaded image.
-        files = {}
-        prompt_suffix = ""
+        files: dict[str, tuple[str, bytes, str]] = {}
+
         if image_url:
+            # Download the reference image and upload it as the `image` file field.
+            # The Lumicraft API does NOT support an `image_url` string parameter;
+            # it expects a multipart file upload via the `image` field (see curl example).
             try:
-                async with httpx.AsyncClient(timeout=15.0) as dl:
-                    dl_resp = await dl.get(image_url)
-                    if dl_resp.status_code == 200:
-                        content_type = dl_resp.headers.get("content-type", "image/png")
-                        ext = "png"
-                        if "jpeg" in content_type or "jpg" in content_type:
-                            ext = "jpg"
-                        elif "webp" in content_type:
-                            ext = "webp"
-                        elif "avif" in content_type:
-                            ext = "avif"
-                        files["image"] = (f"reference.{ext}", dl_resp.content, content_type)
-                        prompt_suffix = (
-                            "\n\nThe customer's logo/artwork has been uploaded as 'image'."
-                        )
-            except Exception:
-                # If download fails, fall back to prompt-only generation
-                pass
+                async with httpx.AsyncClient(timeout=30.0) as dl_client:
+                    dl_resp = await dl_client.get(image_url)
+                    dl_resp.raise_for_status()
+                    content = dl_resp.content
+                    content_type = dl_resp.headers.get("content-type", "image/png")
+                    ext = _extract_ext(content_type)
+                    files["image"] = (f"reference.{ext}", content, content_type)
+            except Exception as e:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Failed to download reference image: {str(e)}",
+                })
 
-        # Append the image reference hint to the prompt
-        if prompt_suffix:
-            form_data["prompt"] = prompt + prompt_suffix
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "https://api.lumicraft.io/v1/images/generations",
-                headers={"Authorization": f"Bearer {api_key}"},
-                data=form_data,
-                files=files if files else None,
-            )
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            if files:
+                # With files → httpx sends multipart/form-data automatically
+                resp = await client.post(
+                    "https://api.lumicraft.io/v1/images/generations",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    data=fields,
+                    files=files,
+                )
+            else:
+                # No reference image → simple url-encoded form data is fine
+                resp = await client.post(
+                    "https://api.lumicraft.io/v1/images/generations",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    data=fields,
+                )
 
             if resp.status_code == 401:
                 return json.dumps({
